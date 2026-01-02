@@ -2,853 +2,581 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SeeSo Web Eye-Tracking Demo (Single HTML)</title>
 
-  <!-- 일부 환경에서 도움이 될 수 있으나, 완전한 COOP/COEP는 서버 헤더 설정이 권장됩니다. -->
+  <!-- (선택) 일부 환경에서 crossOriginIsolated가 필요할 수 있어 넣어둠.
+       서버가 헤더를 덮어쓰면 적용되지 않을 수 있음. -->
   <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin" />
   <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp" />
 
-  <title>SeeSo Web Eye-Tracking Demo (Single HTML)</title>
-
-  <!-- SeeSo CDN (샘플 저장소에 안내된 URL) -->
-  <script src="https://cdn.seeso.io/seeso.js"></script>
-
   <style>
-    :root{
-      --bg:#0b0b10;
-      --panel:#141424;
-      --panel2:#1b1b2e;
-      --text:#e9e9f2;
-      --muted:#a7a7c3;
-      --accent:#8b5cf6; /* 보라 */
-      --danger:#ef4444;
-      --ok:#22c55e;
+    :root { color-scheme: dark; }
+    body {
+      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial;
+      background: #0b0f14; color: #e6edf3;
     }
-    html, body { height:100%; margin:0; background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", sans-serif; }
-    .wrap { display:grid; grid-template-columns: 360px 1fr; height:100%; }
-    .sidebar{
-      background: linear-gradient(180deg, var(--panel), var(--panel2));
-      border-right: 1px solid rgba(255,255,255,0.08);
-      padding: 16px;
-      box-sizing:border-box;
-      overflow:auto;
+    header {
+      display: flex; gap: 12px; align-items: center; justify-content: space-between;
+      padding: 12px 14px; border-bottom: 1px solid #1f2a37; background: #0b0f14;
+      position: sticky; top: 0; z-index: 10;
     }
-    .main{
-      position:relative;
-      overflow:hidden;
+    header .left { display:flex; gap:10px; align-items:center; }
+    .badge { font-size: 12px; padding: 3px 8px; border: 1px solid #334155; border-radius: 999px; color: #cbd5e1; }
+    .ok { border-color:#14532d; color:#bbf7d0; }
+    .warn { border-color:#7c2d12; color:#fed7aa; }
+    .err { border-color:#7f1d1d; color:#fecaca; }
+
+    main { display: grid; grid-template-columns: 360px 1fr; gap: 14px; padding: 14px; }
+    @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+
+    .card {
+      border: 1px solid #1f2a37; border-radius: 14px; padding: 12px; background: #0f1621;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
     }
-    h1{ font-size:16px; margin:0 0 10px 0; }
-    .sub{ color:var(--muted); font-size:12px; line-height:1.35; margin-bottom:12px; }
-    .card{
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      padding: 12px;
-      margin-bottom: 12px;
+    .card h3 { margin: 0 0 10px; font-size: 14px; color:#cbd5e1; font-weight: 700; }
+    .row { display:flex; gap: 8px; flex-wrap: wrap; }
+    button {
+      background:#111827; color:#e5e7eb; border:1px solid #334155; border-radius: 10px;
+      padding: 10px 12px; cursor:pointer; font-weight: 700; font-size: 13px;
     }
-    .row{ display:flex; gap:8px; flex-wrap:wrap; }
-    button{
-      background: rgba(255,255,255,0.06);
-      color: var(--text);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 10px;
-      padding: 10px 10px;
-      font-size: 12px;
-      cursor:pointer;
-      transition: .15s ease;
-    }
-    button:hover{ border-color: rgba(255,255,255,0.25); }
-    button.primary{
-      background: rgba(139,92,246,0.18);
-      border-color: rgba(139,92,246,0.45);
-    }
-    button.danger{
-      background: rgba(239,68,68,0.12);
-      border-color: rgba(239,68,68,0.45);
-    }
-    button:disabled{
-      opacity:0.45;
-      cursor:not-allowed;
+    button:disabled { opacity:.45; cursor:not-allowed; }
+    button.primary { background:#1f2937; border-color:#475569; }
+    button.danger { background:#2a1313; border-color:#7f1d1d; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color:#cbd5e1; }
+    .kv { display:grid; grid-template-columns: 130px 1fr; gap: 6px 10px; }
+    .kv div { padding: 4px 0; border-bottom: 1px dashed rgba(148,163,184,.2); }
+    .kv div:nth-child(odd) { color:#94a3b8; }
+    .kv div:nth-child(even) { color:#e2e8f0; }
+
+    #log {
+      height: 260px; overflow:auto; background:#0b1220; border:1px solid #1f2a37;
+      border-radius: 12px; padding: 10px; white-space: pre-wrap; line-height: 1.4;
     }
 
-    .kv{ display:grid; grid-template-columns: 120px 1fr; gap:6px 10px; font-size:12px; }
-    .k{ color:var(--muted); }
-    .v{ color:var(--text); word-break:break-all; }
-
-    .log{
-      height: 210px;
-      overflow:auto;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size: 11px;
-      line-height: 1.35;
-      background: rgba(0,0,0,0.35);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 10px;
-      padding: 8px;
-      white-space: pre-wrap;
+    /* Stage */
+    #stage {
+      position: relative; border: 1px solid #1f2a37; border-radius: 14px; background:#05070b;
+      min-height: 560px; overflow:hidden;
     }
-
-    /* video */
-    video{
-      position:absolute;
-      right: 16px;
-      bottom: 16px;
-      width: 260px;
-      height: 195px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: #000;
-      object-fit: cover;
-      opacity: 0.85;
+    #hint {
+      position:absolute; left: 12px; top: 12px; right: 12px;
+      padding: 10px 12px; border-radius: 12px; background: rgba(15,22,33,.85);
+      border:1px solid rgba(51,65,85,.6); color:#e2e8f0; z-index: 2;
     }
+    #video {
+      position:absolute; right: 12px; bottom: 12px; width: 220px; aspect-ratio: 16/10;
+      border-radius: 12px; border:1px solid rgba(51,65,85,.7); background:#000; z-index: 2;
+      opacity: .92;
+    }
+    #gazeDot, #calibDot {
+      position: absolute; width: 16px; height: 16px; border-radius: 999px; transform: translate(-50%, -50%);
+      pointer-events:none; z-index: 3;
+    }
+    #gazeDot { background: rgba(34,197,94,.95); box-shadow: 0 0 0 6px rgba(34,197,94,.18); display:none; }
+    #calibDot { background: rgba(147,51,234,.95); box-shadow: 0 0 0 10px rgba(147,51,234,.18); display:none; }
 
-    /* gaze dot overlay */
-    .dot{
-      position:absolute;
-      width: 14px;
-      height: 14px;
-      border-radius: 999px;
-      background: var(--accent);
-      box-shadow: 0 0 0 6px rgba(139,92,246,0.16);
-      transform: translate(-50%, -50%);
-      pointer-events:none;
-      display:none;
+    #crosshair {
+      position:absolute; left:0; top:0; right:0; bottom:0; pointer-events:none; opacity:.08;
+      background-image:
+        linear-gradient(to right, rgba(226,232,240,.35) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(226,232,240,.35) 1px, transparent 1px);
+      background-size: 40px 40px;
+      z-index: 1;
     }
 
-    /* calibration point */
-    .calib{
-      position:absolute;
-      width: 22px;
-      height: 22px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.92);
-      box-shadow: 0 0 0 10px rgba(139,92,246,0.22);
-      transform: translate(-50%, -50%);
-      pointer-events:none;
-      display:none;
-    }
-
-    .banner{
-      position:absolute;
-      left: 16px;
-      top: 16px;
-      right: 16px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.10);
-      color: var(--muted);
-      font-size: 12px;
-      backdrop-filter: blur(6px);
-    }
-    .banner strong{ color: var(--text); }
-    .pill{
-      display:inline-block;
-      padding: 2px 8px;
-      border-radius: 999px;
-      border:1px solid rgba(255,255,255,0.14);
-      background: rgba(0,0,0,0.25);
-      font-size: 11px;
-      color: var(--text);
-      margin-left: 6px;
-    }
-    .pill.ok{ border-color: rgba(34,197,94,0.45); color: var(--ok); }
-    .pill.bad{ border-color: rgba(239,68,68,0.45); color: var(--danger); }
-
-    .progress{
-      height: 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.08);
-      overflow:hidden;
-      border:1px solid rgba(255,255,255,0.10);
-    }
-    .progress > div{
-      height:100%;
-      width:0%;
-      background: rgba(139,92,246,0.75);
-    }
+    .muted { color:#94a3b8; }
+    .small { font-size: 12px; }
+    .sep { height: 10px; }
   </style>
+
+  <!-- SeeSo Web SDK (CDN) -->
+  <!-- 샘플 repo README에서 안내되는 CDN 방식(환경에 따라 URL이 변경될 수 있음) -->
+  <script src="https://cdn.seeso.io/seeso.js"></script>
 </head>
 
 <body>
-<div class="wrap">
-  <aside class="sidebar">
-    <h1>SeeSo Web Eye-Tracking Demo</h1>
-    <div class="sub">
-      단일 HTML 파일 데모. 카메라 권한 필요. (권장: <strong>https</strong> 또는 <strong>localhost</strong>)
-      <div style="margin-top:6px">
-        <span id="securePill" class="pill">origin</span>
-        <span id="isolationPill" class="pill">crossOriginIsolated</span>
+<header>
+  <div class="left">
+    <div style="font-weight:900;">SeeSo Web Eye-Tracking Demo</div>
+    <span id="secureBadge" class="badge">Secure Context 확인 중...</span>
+    <span id="sdkBadge" class="badge">SDK 로딩 확인 중...</span>
+  </div>
+  <div class="row">
+    <button id="btnStart" class="primary">자동 시작 재시도</button>
+    <button id="btnCalib">캘리브레이션(5pt) 재시작</button>
+    <button id="btnStop" class="danger">중지</button>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <h3>상태</h3>
+    <div class="kv mono">
+      <div>Origin</div><div id="kvOrigin"></div>
+      <div>HTTPS/localhost</div><div id="kvSecure"></div>
+      <div>crossOriginIsolated</div><div id="kvCOI"></div>
+      <div>SDK</div><div id="kvSDK"></div>
+      <div>Tracking</div><div id="kvTracking"></div>
+      <div>Calibration</div><div id="kvCalib"></div>
+      <div>Gaze (x,y)</div><div id="kvGaze"></div>
+      <div>Debug</div><div id="kvDebug"></div>
+    </div>
+
+    <div class="sep"></div>
+
+    <h3>로그</h3>
+    <div id="log" class="mono"></div>
+
+    <div class="sep"></div>
+    <div class="small muted">
+      - 이 파일에는 라이센스키가 포함되어 있어, 배포 시 누구나 확인할 수 있습니다.<br/>
+      - 카메라는 브라우저 정책상 HTTPS(또는 localhost)에서만 퍼미션 팝업이 뜹니다. (HTTP/파일열기 불가) :contentReference[oaicite:3]{index=3}
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>시선추적 화면</h3>
+    <div id="stage">
+      <div id="crosshair"></div>
+      <div id="hint" class="small">
+        1) 페이지 로드 즉시 카메라 퍼미션 팝업이 뜹니다 → <b>허용</b><br/>
+        2) 자동으로 5포인트 캘리브레이션이 시작됩니다 (보라색 점을 응시)<br/>
+        3) 완료되면 초록색 점이 시선 위치를 표시합니다
       </div>
+      <video id="video" autoplay playsinline muted></video>
+      <div id="calibDot"></div>
+      <div id="gazeDot"></div>
     </div>
+  </section>
+</main>
 
-    <div class="card">
-      <div style="font-size:12px; color:var(--muted); margin-bottom:8px;">컨트롤</div>
-      <div class="row">
-        <button id="btnInit" class="primary">1) Init</button>
-        <button id="btnStart" class="primary" disabled>2) Start Tracking</button>
-        <button id="btnStop" class="danger" disabled>Stop</button>
-        <button id="btnDeinit" disabled>Deinit</button>
-      </div>
-      <div class="row" style="margin-top:8px;">
-        <button id="btnCalib" disabled>3) 5-Point Calibration</button>
-        <button id="btnSaveCalib" disabled>Save Calib</button>
-        <button id="btnLoadCalib" disabled>Load Calib</button>
-        <button id="btnClearLog">Clear Log</button>
-      </div>
-      <div style="margin-top:10px;">
-        <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">Calibration Progress</div>
-        <div class="progress"><div id="calibBar"></div></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div style="font-size:12px; color:var(--muted); margin-bottom:8px;">상태</div>
-      <div class="kv">
-        <div class="k">SDK</div><div class="v" id="sdkStatus">-</div>
-        <div class="k">Tracking</div><div class="v" id="trackStatus">-</div>
-        <div class="k">Gaze</div><div class="v" id="gazeStatus">-</div>
-        <div class="k">Fixation</div><div class="v" id="fixStatus">-</div>
-        <div class="k">State</div><div class="v" id="stateStatus">-</div>
-        <div class="k">Attention</div><div class="v" id="attStatus">-</div>
-        <div class="k">Blink</div><div class="v" id="blinkStatus">-</div>
-        <div class="k">Drowsy</div><div class="v" id="drowStatus">-</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div style="font-size:12px; color:var(--muted); margin-bottom:8px;">Log</div>
-      <div id="log" class="log"></div>
-    </div>
-
-    <div class="sub">
-      저장된 Calibration 데이터는 localStorage 키 <strong>seeso_calibration_data</strong> 로 저장됩니다.
-    </div>
-  </aside>
-
-  <main class="main" id="stage">
-    <div class="banner">
-      <strong>Tip</strong> 캘리브레이션(3)을 진행하면 정확도가 크게 향상됩니다.
-      <span id="bannerMsg" class="pill">idle</span>
-    </div>
-
-    <div id="gazeDot" class="dot"></div>
-    <div id="calibDot" class="calib"></div>
-
-    <video id="video" autoplay playsinline muted></video>
-  </main>
-</div>
+<noscript>
+  <div style="padding:16px; color:#fff; background:#7f1d1d;">
+    JavaScript가 비활성화되어 있어 실행할 수 없습니다.
+  </div>
+</noscript>
 
 <script>
-  /********************************************************************
-   *  LICENSE KEY (요청하신 키를 HTML 내부에 포함)
-   ********************************************************************/
+  /**********************************************************************
+   * 필수: 사용자 제공 라이센스 키 (요청대로 HTML 내부에 포함)
+   **********************************************************************/
   const LICENSE_KEY = "dev_1ntzip9admm6g0upynw3gooycnecx0vl93hz8nox";
 
-  /********************************************************************
-   *  Utilities
-   ********************************************************************/
+  /**********************************************************************
+   * Secure context 체크 (URL로 접속해도 카메라 팝업이 뜨게 하려면 HTTPS 필요)
+   **********************************************************************/
+  function isHttpsOrLocalhost() {
+    const p = location.protocol;
+    const h = location.hostname;
+    return (p === "https:" || h === "localhost" || h === "127.0.0.1");
+  }
+
+  /**********************************************************************
+   * DOM helpers
+   **********************************************************************/
   const $ = (id) => document.getElementById(id);
   const logEl = $("log");
-  function log(...args){
-    const msg = args.map(a => (typeof a === "string" ? a : JSON.stringify(a))).join(" ");
-    const line = `[${new Date().toLocaleTimeString()}] ${msg}\n`;
-    logEl.textContent += line;
+  function log(msg) {
+    const t = new Date().toISOString().replace("T"," ").replace("Z","");
+    logEl.textContent += `[${t}] ${msg}\n`;
     logEl.scrollTop = logEl.scrollHeight;
-    console.log(...args);
   }
-
-  function setPill(el, ok, text){
+  function setBadge(el, text, cls) {
+    el.className = "badge " + (cls || "");
     el.textContent = text;
-    el.classList.remove("ok","bad");
-    el.classList.add(ok ? "ok" : "bad");
+  }
+  function setKV(id, val) {
+    $(id).textContent = String(val);
   }
 
-  function fmt(n){
-    if (n === null || n === undefined || Number.isNaN(n)) return "-";
-    return (typeof n === "number") ? n.toFixed(1) : String(n);
+  /**********************************************************************
+   * SeeSo namespace/constructor 해석(환경별 글로벌 노출 차이를 방어적으로 처리)
+   **********************************************************************/
+  function resolveSeesoNamespace() {
+    // 가능한 후보들을 최대한 넓게 탐색
+    return window.seeso || window.SeeSo || window.Eyedid || window.EyeDid || null;
+  }
+  function resolveSeesoCtor(ns) {
+    if (!ns) return null;
+    // ns가 function(ctor)인 경우, 또는 {default: ctor}인 경우 모두 대응
+    if (typeof ns === "function") return ns;
+    if (typeof ns.default === "function") return ns.default;
+    return null;
+  }
+  function resolveEnum(ns, ctor, enumName) {
+    if (ns && ns[enumName]) return ns[enumName];
+    if (ctor && ctor[enumName]) return ctor[enumName];
+    return null;
   }
 
-  function toViewportXY(x, y){
-    // (1) normalized(0~1)로 들어오는 경우
-    if (typeof x === "number" && typeof y === "number" && x >= 0 && x <= 1.2 && y >= 0 && y <= 1.2) {
-      return [x * window.innerWidth, y * window.innerHeight];
-    }
-    // (2) px로 들어오는 경우
-    return [x, y];
-  }
-
-  function safeEnum(container, path){
-    // path: ["InitializationErrorType","ERROR_NONE"] 같은 형태
-    let cur = container;
-    for (const p of path){
-      cur = cur?.[p];
-      if (cur === undefined || cur === null) return undefined;
-    }
-    return cur;
-  }
-
-  /********************************************************************
-   *  EasySeeso Wrapper (주어진 코드 구조를 웹(CDN) 환경에 맞게 정리)
-   ********************************************************************/
+  /**********************************************************************
+   * EasySeeso (사용자 제공 코드 기반, webpack import 제거/순수 JS화)
+   **********************************************************************/
   class EasySeeso {
-    constructor() {
-      const Ctor = (typeof window.SeeSo === "function") ? window.SeeSo : null;
-      if (!Ctor) {
-        throw new Error("SeeSo CDN 로딩 실패: window.SeeSo 생성자를 찾을 수 없습니다. (cdn.seeso.io/seeso.js 확인)");
-      }
+    constructor(seesoNs) {
+      this._ns = seesoNs;
+      const Ctor = resolveSeesoCtor(seesoNs);
+      if (!Ctor) throw new Error("SeeSo SDK constructor를 찾을 수 없습니다. (CDN 로딩 실패 가능)");
       this.seeso = new Ctor();
 
       this.onGaze = null;
       this.onFace = null;
       this.onDebug = null;
 
-      // calibration
       this.onCalibrationNextPoint = null;
       this.onCalibrationProgress = null;
       this.onCalibrationFinished = null;
 
-      // user status
       this.onAttention = null;
       this.onBlink = null;
       this.onDrowsiness = null;
 
       this.onGazeBind = null;
       this.onCalibrationFinishedBind = null;
-      this.stream = null;
     }
 
     async init(licenseKey, afterInitialized, afterFailed, userStatusOption) {
-      // initialize()의 성공 코드는 문서/샘플에서 보통 0(성공)으로 사용됩니다.
-      // (환경에 따라 enum이 제공되면 enum도 함께 체크)
-      const errCode = await this.seeso.initialize(licenseKey, userStatusOption);
-      const okCode = safeEnum(window, ["InitializationErrorType","ERROR_NONE"])
-                  ?? safeEnum(window, ["SeeSo","InitializationErrorType","ERROR_NONE"])
-                  ?? 0;
+      const InitErr = resolveEnum(this._ns, resolveSeesoCtor(this._ns), "InitializationErrorType");
 
-      if (errCode === okCode) {
-        afterInitialized?.();
-        this.onCalibrationFinishedBind = this.onCalibrationFinished_.bind(this);
-        this.seeso.addCalibrationFinishCallback(this.onCalibrationFinishedBind);
+      await this.seeso.initialize(licenseKey, userStatusOption).then(function (errCode) {
+        // errCode === 0(ERROR_NONE) 형태일 수도 있어 방어적으로 처리
+        const ok =
+          (InitErr && errCode === InitErr.ERROR_NONE) ||
+          (!InitErr && (errCode === 0 || errCode === "ERROR_NONE"));
 
-        this.onGazeBind = this.onGaze_.bind(this);
-        this.seeso.addGazeCallback(this.onGazeBind);
+        if (ok) {
+          afterInitialized();
+          this.onCalibrationFinishedBind = this.onCalibrationFinished_.bind(this);
+          this.seeso.addCalibrationFinishCallback(this.onCalibrationFinishedBind);
 
-        return true;
-      } else {
-        afterFailed?.(errCode);
-        return false;
-      }
+          this.onGazeBind = this.onGaze_.bind(this);
+          this.seeso.addGazeCallback(this.onGazeBind);
+        } else {
+          afterFailed(errCode);
+        }
+      }.bind(this));
     }
 
     deinit() {
-      try { this.removeUserStatusCallback(); } catch {}
-      try { if (this.onGazeBind) this.seeso.removeGazeCallback(this.onGazeBind); } catch {}
-      try { if (this.onCalibrationFinishedBind) this.seeso.removeCalibrationFinishCallback(this.onCalibrationFinishedBind); } catch {}
-      try { if (this.onDebug) this.seeso.removeDebugCallback(this.onDebug); } catch {}
-      try { this.seeso.deinitialize(); } catch {}
-
-      this.stopMedia();
-      this.onGaze = null;
-      this.onDebug = null;
-      log("Deinitialized.");
+      try { this.removeUserStatusCallback(); } catch (e) {}
+      try { if (this.onGazeBind) this.seeso.removeGazeCallback(this.onGazeBind); } catch (e) {}
+      try { if (this.onCalibrationFinishedBind) this.seeso.removeCalibrationFinishCallback(this.onCalibrationFinishedBind); } catch (e) {}
+      try { if (this.onDebug) this.seeso.removeDebugCallback(this.onDebug); } catch (e) {}
+      try { this.seeso.deinitialize(); } catch (e) {}
     }
 
-    async startTracking(onGaze, onDebug) {
-      // 카메라 권한 요청
-      this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+    async startTracking(onGaze, onDebug, videoElForPreview) {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true }); // Secure context 필요 :contentReference[oaicite:4]{index=4}
+      if (videoElForPreview) {
+        videoElForPreview.srcObject = stream;
+      }
 
       this.seeso.addDebugCallback(onDebug);
-      const ok = this.seeso.startTracking(this.stream);
 
-      if (ok) {
+      if (this.seeso.startTracking(stream)) {
         this.onGaze = onGaze;
         this.onDebug = onDebug;
         return true;
       } else {
-        this.seeso.removeDebugCallback(onDebug);
-        this.onGaze = null;
-        this.onDebug = null;
+        this.seeso.removeDebugCallback(this.onDebug);
         return false;
       }
     }
 
     stopTracking() {
-      try { this.seeso.stopTracking(); } catch {}
-      try { if (this.onDebug) this.seeso.removeDebugCallback(this.onDebug); } catch {}
+      try { this.seeso.stopTracking(); } catch (e) {}
+      try { if (this.onDebug) this.seeso.removeDebugCallback(this.onDebug); } catch (e) {}
       this.onGaze = null;
       this.onDebug = null;
-      this.stopMedia();
-    }
-
-    stopMedia(){
-      try {
-        if (this.stream) {
-          this.stream.getTracks().forEach(t => t.stop());
-          this.stream = null;
-        }
-      } catch {}
-    }
-
-    setFaceCallback(onFace) {
-      this.seeso.addFaceCallback(onFace);
-      this.onFace = onFace;
-    }
-
-    setUserStatusCallback(onAttention, onBlink, onDrowsiness) {
-      this.seeso.addAttentionCallback(onAttention);
-      this.seeso.addBlinkCallback(onBlink);
-      this.seeso.addDrowsinessCallback(onDrowsiness);
-      this.onAttention = onAttention;
-      this.onBlink = onBlink;
-      this.onDrowsiness = onDrowsiness;
-    }
-
-    removeUserStatusCallback() {
-      try { this.seeso.removeAttentionCallback(this.onAttention); } catch {}
-      try { this.seeso.removeBlinkCallback(this.onBlink); } catch {}
-      try { this.seeso.removeDrowsinessCallback(this.onDrowsiness); } catch {}
     }
 
     startCalibration(onCalibrationNextPoint, onCalibrationProgress, onCalibrationFinished, calibrationPoints = 5) {
+      const CalibCriteria = resolveEnum(this._ns, resolveSeesoCtor(this._ns), "CalibrationAccuracyCriteria");
+
       this.seeso.addCalibrationNextPointCallback(onCalibrationNextPoint);
       this.seeso.addCalibrationProgressCallback(onCalibrationProgress);
 
-      const criteria = safeEnum(window, ["CalibrationAccuracyCriteria","Default"])
-                    ?? safeEnum(window, ["SeeSo","CalibrationAccuracyCriteria","Default"])
-                    ?? 0;
-
+      const criteria = CalibCriteria ? CalibCriteria.Default : undefined;
       const isStart = this.seeso.startCalibration(calibrationPoints, criteria);
+
       if (isStart) {
         this.onCalibrationNextPoint = onCalibrationNextPoint;
         this.onCalibrationProgress = onCalibrationProgress;
         this.onCalibrationFinished = onCalibrationFinished;
       } else {
-        try { this.seeso.removeCalibrationNextPointCallback(onCalibrationNextPoint); } catch {}
-        try { this.seeso.removeCalibrationProgressCallback(onCalibrationProgress); } catch {}
+        this.seeso.removeCalibrationNextPointCallback(this.onCalibrationNextPoint);
+        this.seeso.removeCalibrationProgressCallback(this.onCalibrationProgress);
       }
       return isStart;
     }
 
-    stopCalibration() {
-      return this.seeso.stopCalibration();
-    }
+    stopCalibration() { return this.seeso.stopCalibration(); }
+    startCollectSamples() { this.seeso.startCollectSamples(); }
 
-    startCollectSamples() {
-      this.seeso.startCollectSamples();
-    }
-
-    async setCalibrationData(calibrationData) {
-      // calibrationData가 문자열/배열/객체로 들어올 수 있으므로 최대한 관대하게 처리
-      let payload = calibrationData;
-      if (typeof calibrationData === "string") {
-        // 그대로
-      } else {
-        payload = JSON.stringify(calibrationData);
-      }
-      await this.seeso.setCalibrationData(payload);
-    }
-
-    onGaze_(gazeInfo) {
-      if (this.onGaze) this.onGaze(gazeInfo);
-    }
+    onGaze_(gazeInfo) { if (this.onGaze) this.onGaze(gazeInfo); }
 
     onCalibrationFinished_(calibrationData) {
-      if (this.onCalibrationFinished) {
-        this.onCalibrationFinished(calibrationData);
-      }
-      try { this.seeso.removeCalibrationNextPointCallback(this.onCalibrationNextPoint); } catch {}
-      try { this.seeso.removeCalibrationProgressCallback(this.onCalibrationProgress); } catch {}
+      if (this.onCalibrationFinished) this.onCalibrationFinished(calibrationData);
+
+      this.seeso.removeCalibrationNextPointCallback(this.onCalibrationNextPoint);
+      this.seeso.removeCalibrationProgressCallback(this.onCalibrationProgress);
+
       this.onCalibrationFinished = null;
       this.onCalibrationProgress = null;
       this.onCalibrationNextPoint = null;
     }
   }
 
-  /********************************************************************
-   *  App State
-   ********************************************************************/
-  let easy = null;
-  let isInited = false;
-  let isTracking = false;
+  /**********************************************************************
+   * UI + Flow
+   **********************************************************************/
+  const secureBadge = $("secureBadge");
+  const sdkBadge = $("sdkBadge");
 
-  const videoEl = $("video");
-  const stageEl = $("stage");
-  const gazeDotEl = $("gazeDot");
-  const calibDotEl = $("calibDot");
-  const calibBarEl = $("calibBar");
-
-  const btnInit = $("btnInit");
   const btnStart = $("btnStart");
-  const btnStop = $("btnStop");
-  const btnDeinit = $("btnDeinit");
   const btnCalib = $("btnCalib");
-  const btnSaveCalib = $("btnSaveCalib");
-  const btnLoadCalib = $("btnLoadCalib");
-  const btnClearLog = $("btnClearLog");
+  const btnStop  = $("btnStop");
 
-  const sdkStatus = $("sdkStatus");
-  const trackStatus = $("trackStatus");
-  const gazeStatus = $("gazeStatus");
-  const fixStatus = $("fixStatus");
-  const stateStatus = $("stateStatus");
-  const attStatus = $("attStatus");
-  const blinkStatus = $("blinkStatus");
-  const drowStatus = $("drowStatus");
-  const bannerMsg = $("bannerMsg");
+  const stage = $("stage");
+  const gazeDot = $("gazeDot");
+  const calibDot = $("calibDot");
+  const videoEl = $("video");
 
-  // last gaze for render loop
-  let lastGaze = null;
-  let lastFix = null;
+  let easy = null;
+  let tracking = false;
+  let calibrating = false;
 
-  function setBanner(text, ok=null){
-    bannerMsg.textContent = text;
-    bannerMsg.classList.remove("ok","bad");
-    if (ok === true) bannerMsg.classList.add("ok");
-    if (ok === false) bannerMsg.classList.add("bad");
+  function setTrackingState(v) {
+    tracking = v;
+    setKV("kvTracking", tracking ? "ON" : "OFF");
+    btnStop.disabled = !tracking;
+    btnCalib.disabled = !tracking;
+  }
+  function setCalibState(v) {
+    calibrating = v;
+    setKV("kvCalib", calibrating ? "RUNNING" : "IDLE");
   }
 
-  function updateButtons(){
-    btnInit.disabled = isInited;
-    btnStart.disabled = !isInited || isTracking;
-    btnStop.disabled = !isTracking;
-    btnDeinit.disabled = !isInited;
-    btnCalib.disabled = !isTracking;
-    btnSaveCalib.disabled = !isInited;
-    btnLoadCalib.disabled = !isInited;
+  function placeDot(el, x, y) {
+    // stage 기준 좌표가 아니라 "뷰포트" 좌표를 받을 가능성이 높아, stage의 bounding rect로 보정
+    const r = stage.getBoundingClientRect();
+    // (x,y)가 픽셀(뷰포트)이라면 그대로 사용
+    // (x,y)가 0~1 정규화라면 stage 비율로 변환
+    let px = x;
+    let py = y;
+
+    if (x >= 0 && x <= 1 && y >= 0 && y <= 1) {
+      px = r.left + x * r.width;
+      py = r.top  + y * r.height;
+    }
+
+    // stage 내부 좌표로 변환
+    const sx = px - r.left;
+    const sy = py - r.top;
+
+    el.style.left = sx + "px";
+    el.style.top  = sy + "px";
   }
 
-  function updateOriginPills(){
-    const secure = (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1");
-    setPill($("securePill"), secure, secure ? "secure origin" : "insecure origin");
-    setPill($("isolationPill"), !!window.crossOriginIsolated, window.crossOriginIsolated ? "isolated" : "not isolated");
+  function parseXY(args) {
+    // (obj) / ([x,y]) / (x,y) 모두 대응
+    if (args.length === 1) {
+      const a = args[0];
+      if (!a) return null;
+      if (typeof a === "object") {
+        if ("x" in a && "y" in a) return { x: a.x, y: a.y };
+        if (Array.isArray(a) && a.length >= 2) return { x: a[0], y: a[1] };
+      }
+      return null;
+    }
+    if (args.length >= 2) return { x: args[0], y: args[1] };
+    return null;
   }
 
-  /********************************************************************
-   *  Callbacks
-   ********************************************************************/
-  function onDebug(msg){
-    // SDK가 문자열 또는 객체를 전달할 수 있음
-    if (typeof msg === "string") log("[debug]", msg);
-    else log("[debug]", msg);
+  function handleGaze(gazeInfo) {
+    if (!gazeInfo) return;
+
+    // 일반적으로 gazeInfo.x, gazeInfo.y 형태를 기대
+    const x = gazeInfo.x ?? gazeInfo.gazeX ?? gazeInfo.screenX ?? null;
+    const y = gazeInfo.y ?? gazeInfo.gazeY ?? gazeInfo.screenY ?? null;
+
+    if (typeof x === "number" && typeof y === "number") {
+      gazeDot.style.display = "block";
+      placeDot(gazeDot, x, y);
+      setKV("kvGaze", `${x.toFixed(1)}, ${y.toFixed(1)}`);
+    }
   }
 
-  function onGaze(gazeInfo){
-    lastGaze = gazeInfo;
-
-    const x = gazeInfo?.x ?? gazeInfo?.gazeX ?? gazeInfo?.gaze_x;
-    const y = gazeInfo?.y ?? gazeInfo?.gazeY ?? gazeInfo?.gaze_y;
-
-    const fx = gazeInfo?.fixationX ?? gazeInfo?.fixation_x ?? gazeInfo?.fixationX ?? gazeInfo?.fixationX;
-    const fy = gazeInfo?.fixationY ?? gazeInfo?.fixation_y ?? gazeInfo?.fixationY ?? gazeInfo?.fixationY;
-
-    const ts = gazeInfo?.timestamp ?? gazeInfo?.timeStamp ?? gazeInfo?.time;
-    const trackingState = gazeInfo?.trackingState ?? gazeInfo?.tracking_state;
-    const eyeMove = gazeInfo?.eyeMovementState ?? gazeInfo?.eye_movement_state;
-
-    const leftOpen = gazeInfo?.leftOpenness ?? gazeInfo?.left_openness;
-    const rightOpen = gazeInfo?.rightOpenness ?? gazeInfo?.right_openness;
-
-    gazeStatus.textContent = `x=${fmt(x)}, y=${fmt(y)} (t=${ts ?? "-"})`;
-    fixStatus.textContent = (fx !== undefined && fy !== undefined) ? `fx=${fmt(fx)}, fy=${fmt(fy)}` : "-";
-    stateStatus.textContent = `trackingState=${trackingState ?? "-"}, eyeMove=${eyeMove ?? "-"}, eyeOpen(L/R)=${fmt(leftOpen)}/${fmt(rightOpen)}`;
-
-    if (fx !== undefined && fy !== undefined) lastFix = {fx, fy};
+  function handleDebug(debugInfo) {
+    // debugInfo 구조가 SDK 버전에 따라 다를 수 있어 최소 출력
+    try {
+      const s = (typeof debugInfo === "string") ? debugInfo : JSON.stringify(debugInfo);
+      setKV("kvDebug", s.slice(0, 120) + (s.length > 120 ? "…" : ""));
+    } catch (e) {
+      setKV("kvDebug", String(debugInfo));
+    }
   }
 
-  function onAttention(tsBegin, tsEnd, score){
-    attStatus.textContent = `score=${fmt(score)} (t=${tsBegin ?? "-"}~${tsEnd ?? "-"})`;
+  async function initAndStart() {
+    // Secure context 강제 (URL 접속 기반 목적)
+    const secureOk = isHttpsOrLocalhost();
+    setKV("kvOrigin", location.origin || (location.protocol + "//" + location.host));
+    setKV("kvSecure", secureOk ? "YES" : "NO");
+    setKV("kvCOI", window.crossOriginIsolated ? "true" : "false");
+
+    if (secureOk) {
+      setBadge(secureBadge, "Secure Context: OK (HTTPS/localhost)", "ok");
+    } else {
+      setBadge(secureBadge, "Secure Context: NO (HTTPS 필요)", "err");
+      log("오류: HTTP/파일열기 환경에서는 카메라 퍼미션 팝업이 뜨지 않습니다. HTTPS로 배포 후 URL로 접속하세요.");
+      // 여기서도 버튼은 남겨두되, 실행 시도는 막음
+      return;
+    }
+
+    const ns = resolveSeesoNamespace();
+    const ctor = resolveSeesoCtor(ns);
+    if (!ns || !ctor) {
+      setBadge(sdkBadge, "SDK: 로딩 실패 (cdn.seeso.io)", "err");
+      setKV("kvSDK", "NOT FOUND");
+      log("오류: SeeSo SDK 글로벌 객체를 찾지 못했습니다. (CDN 로딩 실패/차단 가능)");
+      return;
+    }
+    setBadge(sdkBadge, "SDK: LOADED", "ok");
+    setKV("kvSDK", "OK");
+
+    // SDK init
+    easy = new EasySeeso(ns);
+    setTrackingState(false);
+    setCalibState(false);
+
+    // 필요 시 userStatusOption을 넣을 수 있음(옵션 구조는 SDK 버전별 상이)
+    const userStatusOption = undefined;
+
+    log("SDK initialize() 호출...");
+    await easy.init(
+      LICENSE_KEY,
+      () => log("SDK initialize 성공"),
+      (errCode) => log("SDK initialize 실패: " + errCode),
+      userStatusOption
+    );
+
+    // 카메라 퍼미션 팝업을 즉시 띄우기 위해, 페이지 로드 후 바로 getUserMedia 시도
+    log("카메라 getUserMedia() 요청 → 퍼미션 팝업이 떠야 정상입니다.");
+    try {
+      const ok = await easy.startTracking(handleGaze, handleDebug, videoEl);
+      if (!ok) {
+        log("startTracking 실패(반환값 false).");
+        setTrackingState(false);
+        return;
+      }
+      setTrackingState(true);
+      log("Tracking 시작 성공.");
+
+      // 자동 캘리브레이션 시작
+      startCalibration5();
+    } catch (e) {
+      // 브라우저가 “사용자 제스처 필요” 정책으로 차단하는 경우가 있어 fallback 안내
+      log("카메라 시작 실패: " + (e && e.name ? e.name + " - " : "") + (e && e.message ? e.message : String(e)));
+      log("브라우저가 자동 호출을 막는 경우, 상단의 '자동 시작 재시도' 버튼을 클릭해 주세요.");
+      setTrackingState(false);
+    }
   }
-  function onBlink(ts, isBlinkLeft, isBlinkRight, isBlink, leftOpen, rightOpen){
-    blinkStatus.textContent = `blink=${!!isBlink} (L=${!!isBlinkLeft}, R=${!!isBlinkRight}) open=${fmt(leftOpen)}/${fmt(rightOpen)} t=${ts ?? "-"}`;
-  }
-  function onDrowsiness(ts, isDrowsy, intensity){
-    drowStatus.textContent = `drowsy=${!!isDrowsy}, intensity=${fmt(intensity)} t=${ts ?? "-"}`;
-  }
 
-  /********************************************************************
-   *  Calibration (in-page)
-   *  문서 프로세스: onCalibrationNextPoint로 좌표 수신 → UI에 점 표시 → startCollectSamples 호출 :contentReference[oaicite:2]{index=2}
-   ********************************************************************/
-  let isCalibrating = false;
-  function start5PointCalibration(){
-    if (!easy || !isTracking) return;
+  function startCalibration5() {
+    if (!easy || !tracking) return;
 
-    calibBarEl.style.width = "0%";
-    isCalibrating = true;
-    setBanner("calibrating...", true);
-    log("Calibration started (5 points).");
+    // 캘리브레이션 프로세스: 다음 포인트 좌표 수신 → 점 표시 → startCollectSamples()로 샘플 수집 :contentReference[oaicite:5]{index=5}
+    setCalibState(true);
+    calibDot.style.display = "block";
+    gazeDot.style.display = "none";
 
-    const onNextPoint = (x, y) => {
-      const [vx, vy] = toViewportXY(x, y);
-      calibDotEl.style.left = `${vx}px`;
-      calibDotEl.style.top  = `${vy}px`;
-      calibDotEl.style.display = "block";
-      log("Calibration next point:", {x, y});
+    log("Calibration(5pt) 시작...");
 
-      // UI가 실제로 그려진 뒤 샘플 수집 시작
-      requestAnimationFrame(() => {
+    const started = easy.startCalibration(
+      function (...args) {
+        const xy = parseXY(args);
+        if (!xy) {
+          log("onCalibrationNextPoint: 좌표 파싱 실패 (args=" + args.length + ")");
+          return;
+        }
+        placeDot(calibDot, xy.x, xy.y);
+
+        // 점이 UI에 그려진 이후 샘플 수집 시작
         setTimeout(() => {
           try {
             easy.startCollectSamples();
-            log("startCollectSamples()");
           } catch (e) {
-            log("startCollectSamples() failed:", String(e));
+            log("startCollectSamples() 실패: " + (e && e.message ? e.message : String(e)));
           }
-        }, 120);
-      });
-    };
-
-    const onProgress = (p) => {
-      const pct = Math.max(0, Math.min(1, Number(p))) * 100;
-      calibBarEl.style.width = `${pct}%`;
-      // p는 현재 포인트 진행도일 수 있음. (0~1)
-    };
-
-    const onFinished = (calibrationData) => {
-      isCalibrating = false;
-      calibDotEl.style.display = "none";
-      calibBarEl.style.width = "100%";
-      setBanner("calibration done", true);
-
-      log("Calibration finished. Data received.");
-      // 저장(옵션): 자동으로 localStorage에 저장
-      try{
-        localStorage.setItem("seeso_calibration_data", JSON.stringify(calibrationData));
-        log("Calibration data saved to localStorage: seeso_calibration_data");
-      } catch(e){
-        log("Failed to save calibration data:", String(e));
-      }
-    };
-
-    const ok = easy.startCalibration(onNextPoint, onProgress, onFinished, 5);
-    if (!ok) {
-      isCalibrating = false;
-      setBanner("calibration start failed", false);
-      log("Calibration start failed.");
-    }
-  }
-
-  /********************************************************************
-   *  Render Loop (gaze dot)
-   ********************************************************************/
-  function renderLoop(){
-    if (isTracking && lastGaze) {
-      const x = lastGaze?.x ?? lastGaze?.gazeX ?? lastGaze?.gaze_x;
-      const y = lastGaze?.y ?? lastGaze?.gazeY ?? lastGaze?.gaze_y;
-
-      if (typeof x === "number" && typeof y === "number") {
-        const [vx, vy] = toViewportXY(x, y);
-        gazeDotEl.style.left = `${vx}px`;
-        gazeDotEl.style.top  = `${vy}px`;
-        gazeDotEl.style.display = "block";
-      }
-    } else {
-      gazeDotEl.style.display = "none";
-    }
-
-    requestAnimationFrame(renderLoop);
-  }
-
-  /********************************************************************
-   *  Actions
-   ********************************************************************/
-  async function doInit(){
-    try{
-      easy = new EasySeeso();
-      sdkStatus.textContent = "initializing...";
-      setBanner("initializing...", null);
-      log("SDK init start.");
-
-      // UserStatus 옵션(키 케이스를 넓게 잡아 호환성 확보)
-      const userStatusOption = {
-        useAttention: true, useBlink: true, useDrowsiness: true,
-        use_attention: true, use_blink: true, use_drowsiness: true
-      };
-
-      const ok = await easy.init(
-        LICENSE_KEY,
-        () => { /* afterInitialized */ },
-        (errCode) => { log("Initialize failed. errCode=", errCode); },
-        userStatusOption
-      );
-
-      if (!ok) {
-        sdkStatus.textContent = "init failed";
-        setBanner("init failed", false);
-        isInited = false;
-        updateButtons();
-        return;
-      }
-
-      // User status callbacks (옵션)
-      try {
-        easy.setUserStatusCallback(onAttention, onBlink, onDrowsiness);
-      } catch(e) {
-        log("UserStatus callback setup failed:", String(e));
-      }
-
-      isInited = true;
-      sdkStatus.textContent = "initialized";
-      setBanner("initialized", true);
-      log("SDK initialized.");
-
-      updateButtons();
-
-      // 자동 시작 시도(원치 않으면 아래 한 줄을 주석 처리)
-      await doStartTracking();
-    } catch(e){
-      sdkStatus.textContent = "init exception";
-      setBanner("init exception", false);
-      log("Init exception:", String(e));
-    }
-  }
-
-  async function doStartTracking(){
-    if (!easy || !isInited) return;
-    try{
-      trackStatus.textContent = "requesting camera...";
-      setBanner("requesting camera...", null);
-      log("Start tracking...");
-
-      const ok = await easy.startTracking(onGaze, onDebug);
-
-      if (!ok) {
-        trackStatus.textContent = "startTracking failed";
-        setBanner("startTracking failed", false);
-        log("startTracking() returned false.");
-        isTracking = false;
-        updateButtons();
-        return;
-      }
-
-      // 영상 미리보기(선택): stream을 video에 연결
-      try{
-        if (easy.stream) {
-          videoEl.srcObject = easy.stream;
-          await videoEl.play().catch(()=>{});
+        }, 250);
+      },
+      function (progress) {
+        // progress 형태가 number/obj 모두 가능하므로 방어적으로 처리
+        let p = progress;
+        if (typeof progress === "object" && progress !== null) {
+          p = progress.progress ?? progress.percent ?? JSON.stringify(progress);
         }
-      } catch(e){
-        log("Video preview attach failed:", String(e));
+        log("Calibration progress: " + p);
+      },
+      function (calibrationData) {
+        setCalibState(false);
+        calibDot.style.display = "none";
+        gazeDot.style.display = "block";
+
+        // calibrationData는 저장/재사용 가능 (필요 시 localStorage 등에 저장)
+        log("Calibration finished. calibrationData length=" + (calibrationData ? String(calibrationData).length : 0));
+      },
+      5
+    );
+
+    if (!started) {
+      setCalibState(false);
+      calibDot.style.display = "none";
+      log("Calibration start 실패. (startCalibration returned false)");
+    }
+  }
+
+  function stopAll() {
+    try {
+      if (easy) {
+        try { easy.stopCalibration(); } catch (e) {}
+        easy.stopTracking();
+        easy.deinit();
       }
-
-      isTracking = true;
-      trackStatus.textContent = "tracking";
-      setBanner("tracking", true);
-      log("Tracking started.");
-
-      updateButtons();
-
-      // 자동 캘리브레이션(원치 않으면 주석 처리)
-      setTimeout(() => {
-        if (isTracking) start5PointCalibration();
-      }, 500);
-
-    } catch(e){
-      trackStatus.textContent = "start exception";
-      setBanner("start exception", false);
-      log("Start tracking exception:", String(e));
-      isTracking = false;
-      updateButtons();
-    }
-  }
-
-  function doStopTracking(){
-    if (!easy) return;
-    try{
-      easy.stopTracking();
-    } catch(e){
-      log("stopTracking exception:", String(e));
-    }
-    isTracking = false;
-    trackStatus.textContent = "stopped";
-    setBanner("stopped", null);
-    log("Tracking stopped.");
-    updateButtons();
-  }
-
-  function doDeinit(){
-    if (!easy) return;
-    try{
-      easy.deinit();
-    } catch(e){
-      log("deinit exception:", String(e));
-    }
+    } catch (e) {}
     easy = null;
-    isInited = false;
-    isTracking = false;
-    sdkStatus.textContent = "-";
-    trackStatus.textContent = "-";
-    setBanner("idle", null);
-    updateButtons();
+    setTrackingState(false);
+    setCalibState(false);
+    gazeDot.style.display = "none";
+    calibDot.style.display = "none";
+    log("중지 완료.");
   }
 
-  function doSaveCalib(){
-    if (!easy) return;
-    // 이미 캘리브레이션 완료 시 자동 저장하지만, 수동 저장도 제공
-    log("SaveCalib: localStorage key = seeso_calibration_data");
-    setBanner("calib saved (localStorage)", true);
-  }
-
-  async function doLoadCalib(){
-    if (!easy) return;
-    const raw = localStorage.getItem("seeso_calibration_data");
-    if (!raw) {
-      log("No calibration data in localStorage.");
-      setBanner("no calib data", false);
-      return;
-    }
-    try{
-      const data = JSON.parse(raw);
-      await easy.setCalibrationData(data);
-      log("Calibration data loaded into SDK.");
-      setBanner("calib loaded", true);
-    } catch(e){
-      log("Load calibration failed:", String(e));
-      setBanner("calib load failed", false);
-    }
-  }
-
-  /********************************************************************
-   *  Wire UI
-   ********************************************************************/
-  btnInit.addEventListener("click", doInit);
-  btnStart.addEventListener("click", doStartTracking);
-  btnStop.addEventListener("click", doStopTracking);
-  btnDeinit.addEventListener("click", doDeinit);
-  btnCalib.addEventListener("click", start5PointCalibration);
-  btnSaveCalib.addEventListener("click", doSaveCalib);
-  btnLoadCalib.addEventListener("click", doLoadCalib);
-  btnClearLog.addEventListener("click", () => { logEl.textContent = ""; });
-
-  window.addEventListener("resize", () => {
-    // 필요 시 리사이즈 대응 로직 추가 가능
+  /**********************************************************************
+   * Buttons
+   **********************************************************************/
+  btnStart.addEventListener("click", async () => {
+    log("사용자 클릭으로 재시도 시작...");
+    await initAndStart();
   });
 
-  /********************************************************************
-   *  Boot
-   ********************************************************************/
-  (function boot(){
-    updateOriginPills();
-    updateButtons();
+  btnCalib.addEventListener("click", () => {
+    log("캘리브레이션 재시작 요청...");
+    startCalibration5();
+  });
 
-    // SDK 로딩 체크
-    if (typeof window.SeeSo !== "function") {
-      sdkStatus.textContent = "SeeSo CDN not loaded";
-      setBanner("SeeSo CDN not loaded", false);
-      log("ERROR: window.SeeSo not found. CDN 로딩 여부를 확인하세요.");
-      log("Expected: <script src='https://cdn.seeso.io/seeso.js'></script>");
-      return;
-    }
+  btnStop.addEventListener("click", () => {
+    stopAll();
+  });
 
-    sdkStatus.textContent = "ready";
-    setBanner("ready", true);
-
-    // 자동 실행(원치 않으면 아래 한 줄 주석 처리)
-    doInit();
-
-    renderLoop();
-  })();
+  /**********************************************************************
+   * Boot (자동 실행)
+   **********************************************************************/
+  window.addEventListener("DOMContentLoaded", async () => {
+    log("페이지 로드됨. 자동 시작 시도...");
+    await initAndStart();
+  });
 </script>
 </body>
 </html>
