@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- 일부 환경에서 도움이 될 수 있으나, 완전한 COOP/COEP는 서버 헤더 설정이 권장됩니다. -->
+  <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin" />
+  <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp" />
+
+  <title>SeeSo Web Eye-Tracking Demo (Single HTML)</title>
+
+  <!-- SeeSo CDN (샘플 저장소에 안내된 URL) -->
+  <script src="https://cdn.seeso.io/seeso.js"></script>
+
+  <style>
+    :root{
+      --bg:#0b0b10;
+      --panel:#141424;
+      --panel2:#1b1b2e;
+      --text:#e9e9f2;
+      --muted:#a7a7c3;
+      --accent:#8b5cf6; /* 보라 */
+      --danger:#ef4444;
+      --ok:#22c55e;
+    }
+    html, body { height:100%; margin:0; background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", sans-serif; }
+    .wrap { display:grid; grid-template-columns: 360px 1fr; height:100%; }
+    .sidebar{
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      border-right: 1px solid rgba(255,255,255,0.08);
+      padding: 16px;
+      box-sizing:border-box;
+      overflow:auto;
+    }
+    .main{
+      position:relative;
+      overflow:hidden;
+    }
+    h1{ font-size:16px; margin:0 0 10px 0; }
+    .sub{ color:var(--muted); font-size:12px; line-height:1.35; margin-bottom:12px; }
+    .card{
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,*
+
